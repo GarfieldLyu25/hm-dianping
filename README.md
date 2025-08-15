@@ -21,7 +21,7 @@ Load time:4
 Connect Time:0
 Latency:4
 
-apifox 注意header
+apifox 注意header 用户token和 /json格式
 
 循环版代码锁被提前释放导致多次查询数据库 太菜了 呜呜呜看半天问ai都没搞出来
 
@@ -30,3 +30,40 @@ apifox 注意header
 一人一单 锁粒度为每个用户
 锁范围要比mysql事务大
 this proxy 事务通过代理对象执行，同一个类中非事务方法调用事务方法不生效（this）
+
+批量生成用户token 让jmeter用
+```java
+@Test
+    void saveUser() throws IOException {
+        try (FileWriter writer = new FileWriter("tokens.txt",true)) {
+            for (int i = 0; i < 100; i++) {
+                String phone = String.valueOf(number);
+                number++;
+                User user = userService.createUserWithPhone(phone);
+                // 7.保存用户信息到 redis中
+                // 7.1.随机生成token，作为登录令牌
+                String token = UUID.randomUUID().toString(true);
+                // 7.2.将User对象转为HashMap存储
+                UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+                Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
+                        CopyOptions.create()
+                                .setIgnoreNullValue(true)
+                                .setFieldValueEditor((fieldName, fieldValue) -> fieldValue.toString()));
+                // 7.3.存储
+                String tokenKey = LOGIN_USER_KEY + token;
+                stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
+                // 7.4.设置token有效期
+                stringRedisTemplate.expire(tokenKey, LOGIN_USER_TTL, TimeUnit.MINUTES);
+                writer.write(token+"\n");
+                writer.flush(); // 确保及时写入磁盘
+            }
+        }
+    }
+```
+
+库存200    共线程1000     100用户    
+                平均   中位数    最小  最大   异常         吞吐量               
+HTTP请求	1000	131	  122		4	366	   90%	   940.7337723424271
+总体	1000	    131	  122		4	366	   90%	   940.7337723424271
+
+最后库存100 100订单
