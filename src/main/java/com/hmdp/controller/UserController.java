@@ -1,6 +1,7 @@
 package com.hmdp.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -56,9 +58,9 @@ public class UserController {
      * @return 无
      */
     @PostMapping("/logout")
-    public Result logout(){
-        // TODO 实现登出功能
-        return Result.fail("功能未完成");
+    public Result logout(HttpServletRequest request){
+        userService.logout(request);
+        return Result.ok();
     }
 
     @GetMapping("/me")
@@ -66,7 +68,12 @@ public class UserController {
         UserDTO user = UserHolder.getUser();
         return Result.ok(user);
     }
-
+    @GetMapping("/{id}")
+    public Result queryById(@PathVariable("id") Long id){
+        User user = userService.getById(id);
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        return Result.ok(userDTO);
+    }
     @GetMapping("/info/{id}")
     public Result info(@PathVariable("id") Long userId){
         // 查询详情
@@ -79,5 +86,14 @@ public class UserController {
         info.setUpdateTime(null);
         // 返回
         return Result.ok(info);
+    }
+    @PostMapping("/sign")
+    public Result sign(){
+        return userService.sign();
+    }
+
+    @GetMapping("/sign/count")
+    public Result signCount(){
+        return userService.signCount();
     }
 }

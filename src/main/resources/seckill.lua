@@ -8,6 +8,7 @@
 -- 1参数
 local voucherId = ARGV[1]
 local userId = ARGV[2]
+local orderId = ARGV[3]
 
 local stockKey = 'seckill:stock:' .. voucherId
 local orderKey = 'seckill:order:' .. userId
@@ -22,4 +23,5 @@ end
 
 redis.call('sadd',orderKey,userId)
 redis.call('incrby',stockKey,-1)
+redis.call('xadd','stream.orders','*','userId',userId,'voucherId',voucherId,'id',orderKey,'id',orderId)
 return 0
